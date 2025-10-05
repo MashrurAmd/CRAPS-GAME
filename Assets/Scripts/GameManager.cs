@@ -61,14 +61,14 @@ public class GameManager : MonoBehaviour
     private void CompareRolls()
     {
         if (playerRollValue > botRollValue)
-            Debug.Log("🎯 Player wins!");
+            Debug.Log("🎯 Player wins! Player is now the Shooter\"");
         else if (botRollValue > playerRollValue)
-            Debug.Log("🤖 Bot wins!");
+            Debug.Log("🤖 Bot wins!, Bot is now the Shooter");
         else
             Debug.Log("⚖️ It's a tie!");
 
         
         playerCanRoll = true;
-        //Debug.Log("🎲 Player, click roll again for next round!");
+
     }
 }
