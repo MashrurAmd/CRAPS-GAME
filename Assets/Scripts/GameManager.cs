@@ -19,10 +19,10 @@ public class GameManager : MonoBehaviour
     private int botRollValue;
 
     private bool playerCanRoll = true;
+    private bool playerIsWinner = false;
     private bool gameEnded = false;
 
-    private bool playerIsWinner = false;
-    private int manualRollCount = 0; // counts player manual rolls in winner phase
+    private int manualRollCount = 0; // player manual roll counter
     private int[] playerManualResults = new int[2]; // stores dice results
 
     private void Start()
@@ -33,20 +33,28 @@ public class GameManager : MonoBehaviour
         Debug.Log("🎲 Game start — Player clicks dice to roll.");
     }
 
-    public void PlayerRoll()
+    // Called when a dice is clicked
+    public void OnDiceClicked(Dice clickedDice)
     {
         if (gameEnded) return;
 
-        // Case 1: First round normal roll
+        // --- FIRST ROUND: player rolls their dice ---
         if (playerCanRoll && !playerIsWinner)
         {
-            playerCanRoll = false;
-            StartCoroutine(FirstRound());
+            if (clickedDice == playerDice)
+            {
+                playerCanRoll = false;
+                StartCoroutine(FirstRound());
+            }
+            else
+            {
+                Debug.Log("❌ You can only roll your own dice this round!");
+            }
         }
-        // Case 2: Player won, rolling both dice manually
+        // --- PLAYER WON: must roll both dice manually ---
         else if (playerIsWinner)
         {
-            StartCoroutine(PlayerManualDoubleRoll());
+            StartCoroutine(PlayerManualDoubleRoll(clickedDice));
         }
     }
 
@@ -89,11 +97,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private IEnumerator PlayerManualDoubleRoll()
+    private IEnumerator PlayerManualDoubleRoll(Dice clickedDice)
     {
-        // Player can roll either dice manually
-        Dice clickedDice = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject?.GetComponent<Dice>();
-        if (clickedDice == null) yield break;
+        if (manualRollCount >= 2)
+            yield break;
 
         yield return StartCoroutine(clickedDice.Roll());
         int result = clickedDice.CurrentVisibleFace;
@@ -103,7 +110,6 @@ public class GameManager : MonoBehaviour
 
         Debug.Log($"🎯 Manual roll {manualRollCount}: {result}");
 
-        // After both dice are rolled manually
         if (manualRollCount >= 2)
         {
             int sum = playerManualResults[0] + playerManualResults[1];
@@ -148,3 +154,4 @@ public class GameManager : MonoBehaviour
         SecondRuleText.text = message;
     }
 }
+

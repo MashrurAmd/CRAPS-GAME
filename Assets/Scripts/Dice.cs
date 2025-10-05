@@ -26,6 +26,7 @@ public class Dice : MonoBehaviour
             Debug.LogError("No dice sprites loaded. Put sprites into Assets/Resources/DiceSides/");
             yield break;
         }
+
         if (rend == null)
         {
             Debug.LogError("No SpriteRenderer found on " + gameObject.name);
@@ -45,13 +46,11 @@ public class Dice : MonoBehaviour
         Debug.Log($"{gameObject.name} rolled {currentVisibleFace}");
     }
 
-
-
-
     private void OnMouseDown()
     {
-        gameManager.PlayerRoll(); // trigger roll when dice is clicked
+        if (gameManager != null)
+        {
+            gameManager.OnDiceClicked(this);
+        }
     }
-
-
 }
