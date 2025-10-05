@@ -1,47 +1,74 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public Dice dice1; 
-    public Dice dice2; 
+    public Dice playerDice;
+    public Dice botDice;
 
+    private int playerRollValue;
+    private int botRollValue;
+
+    // Flag to control when player can roll
+    private bool playerCanRoll = true;
+
+    // Called at start to show instructions
     private void Start()
     {
-        
-        StartCoroutine(StartGame());
+        Debug.Log("🎲 Player, click the roll button to shoot the dice!");
     }
 
-    private System.Collections.IEnumerator StartGame()
+    // Call this from a UI Button or input to roll player dice
+    public void PlayerRoll()
     {
-        // Roll both dice
-        dice1.RollTheDice();
-        dice2.RollTheDice();
+        if (!playerCanRoll)
+        {
+            Debug.Log("❌ Wait for your turn!");
+            return;
+        }
 
-        
-        yield return new WaitForSeconds(1.5f);
-
-        CompareDice();
+        playerCanRoll = false;
+        StartCoroutine(PlayerRollRoutine());
     }
 
-    private void CompareDice()
+    private IEnumerator PlayerRollRoutine()
     {
-        int dice1Value = dice1.CurrentVisibleFace;
-        int dice2Value = dice2.CurrentVisibleFace;
+        Debug.Log("🧍 Player is rolling...");
+        yield return StartCoroutine(playerDice.Roll());
 
-        Debug.Log($"🎲 Dice 1 rolled: {dice1Value}");
-        Debug.Log($"🎲 Dice 2 rolled: {dice2Value}");
+        // Save player dice value
+        playerRollValue = playerDice.CurrentVisibleFace;
 
-        if (dice1Value > dice2Value)
-        {
-            Debug.Log("✅ Dice 1 is higher!");
-        }
-        else if (dice2Value > dice1Value)
-        {
-            Debug.Log("✅ Dice 2 is higher!");
-        }
+        Debug.Log($"🎲 Player rolled {playerRollValue}");
+
+        // Now let the bot roll
+        yield return StartCoroutine(BotRollRoutine());
+    }
+
+    private IEnumerator BotRollRoutine()
+    {
+        Debug.Log("🤖 Bot is rolling...");
+        yield return StartCoroutine(botDice.Roll());
+
+        // Save bot dice value
+        botRollValue = botDice.CurrentVisibleFace;
+        Debug.Log($"🎲 Bot rolled {botRollValue}");
+
+        // Compare both rolls
+        CompareRolls();
+    }
+
+    private void CompareRolls()
+    {
+        if (playerRollValue > botRollValue)
+            Debug.Log("🎯 Player wins!");
+        else if (botRollValue > playerRollValue)
+            Debug.Log("🤖 Bot wins!");
         else
-        {
-            Debug.Log("⚖️ It’s a tie!");
-        }
+            Debug.Log("⚖️ It's a tie!");
+
+        // Allow player to roll again for next round
+        playerCanRoll = true;
+        Debug.Log("🎲 Player, click roll again for next round!");
     }
 }
