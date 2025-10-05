@@ -67,8 +67,8 @@ public class GameManager : MonoBehaviour
         else
             Debug.Log("⚖️ It's a tie!");
 
-        // Allow player to roll again for next round
+        
         playerCanRoll = true;
-        Debug.Log("🎲 Player, click roll again for next round!");
+        //Debug.Log("🎲 Player, click roll again for next round!");
     }
 }
