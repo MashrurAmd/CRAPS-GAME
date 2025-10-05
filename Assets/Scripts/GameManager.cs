@@ -132,6 +132,18 @@ public class GameManager : MonoBehaviour
         ShowSumPanel($"Bot rolled both dice!\nSum: {sum}");
         Debug.Log($"🎯 Bot's total sum: {sum}");
         gameEnded = true;
+
+        //if sum == 7 || sum == 11
+        //{
+        //    Debug.Log("🤖 Bot wins the game with a sum of 7 or 11!");
+        //}
+        //else
+        //{
+        //    Debug.Log("✅ Player wins the game! Bot did not roll a 7 or 11.");
+        //}
+
+
+
     }
 
     private IEnumerator MoveDiceToCenter()
