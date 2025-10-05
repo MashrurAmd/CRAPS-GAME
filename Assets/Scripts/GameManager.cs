@@ -8,17 +8,18 @@ public class GameManager : MonoBehaviour
     public Dice playerDice;
     public Dice botDice;
 
-    public GameObject resultPanel;   // Assign the panel in Inspector
-    public TMP_Text resultText;      // Assign the TMP_Text inside the panel
+    public GameObject FirstRulePannel;   // Assign the panel in Inspector
+    public TMP_Text FirstRuleText;       // Assign the TMP_Text inside the panel
 
     private int playerRollValue;
     private int botRollValue;
 
     private bool playerCanRoll = true;
+    private bool playerIsStriker = true; // keeps track who won previous round
 
     private void Start()
     {
-        resultPanel.SetActive(false); // panel initially inactive
+        FirstRulePannel.SetActive(false); // panel initially inactive
         Debug.Log("🎲 Click the player dice to roll!");
     }
 
@@ -31,30 +32,34 @@ public class GameManager : MonoBehaviour
         }
 
         playerCanRoll = false;
-        StartCoroutine(PlayerRollRoutine());
+        StartCoroutine(RollRound(playerIsStriker));
     }
 
-    private IEnumerator PlayerRollRoutine()
+    private IEnumerator RollRound(bool playerRollsBoth)
     {
-        // Player rolls
-        yield return StartCoroutine(playerDice.Roll());
-        playerRollValue = playerDice.CurrentVisibleFace;
-        Debug.Log($"🎲 Player rolled {playerRollValue}");
+        if (playerRollsBoth)
+        {
+            // Player rolls both dice
+            yield return StartCoroutine(playerDice.Roll());
+            playerRollValue = playerDice.CurrentVisibleFace;
+            yield return StartCoroutine(botDice.Roll());
+            botRollValue = botDice.CurrentVisibleFace;
+        }
+        else
+        {
+            // Bot rolls both dice automatically
+            yield return StartCoroutine(botDice.Roll());
+            botRollValue = botDice.CurrentVisibleFace;
+            yield return StartCoroutine(playerDice.Roll());
+            playerRollValue = playerDice.CurrentVisibleFace;
+        }
 
-        // Bot rolls
-        yield return StartCoroutine(BotRollRoutine());
-    }
-
-    private IEnumerator BotRollRoutine()
-    {
-        yield return StartCoroutine(botDice.Roll());
-        botRollValue = botDice.CurrentVisibleFace;
-        Debug.Log($"🎲 Bot rolled {botRollValue}");
+        Debug.Log($"🎲 Player: {playerRollValue}, Bot: {botRollValue}");
 
         // Move dice to center
         yield return StartCoroutine(MoveDiceToCenter());
 
-        // Activate the result panel
+        // Show result
         ShowWinnerPanel();
     }
 
@@ -74,14 +79,22 @@ public class GameManager : MonoBehaviour
 
     private void ShowWinnerPanel()
     {
-        resultPanel.SetActive(true); // show panel
+        FirstRulePannel.SetActive(true); // show panel
 
         if (playerRollValue > botRollValue)
-            resultText.text = "Player Wins! Player is now the Striker";
+        {
+            FirstRuleText.text = "Player Wins! Player is now the Striker";
+            playerIsStriker = true;
+        }
         else if (botRollValue > playerRollValue)
-            resultText.text = "Bot Wins! Bot is now the Striker";
+        {
+            FirstRuleText.text = "Bot Wins! Bot is now the Striker";
+            playerIsStriker = false;
+        }
         else
-            resultText.text = "It's a Tie!";
+        {
+            FirstRuleText.text = "It's a Tie!";
+        }
 
         // Automatically hide panel after 3 seconds
         StartCoroutine(HidePanelAfterDelay(3f));
@@ -90,9 +103,20 @@ public class GameManager : MonoBehaviour
     private IEnumerator HidePanelAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
-        resultPanel.SetActive(false); // hide panel
-        playerCanRoll = true;         // allow next round
-        Debug.Log("🎲 Click dice to roll for the next round!");
-    }
+        FirstRulePannel.SetActive(false); // hide panel
 
+        // Decide next turn
+        if (playerIsStriker)
+        {
+            Debug.Log("🎲 Player's turn: click dice to roll both!");
+            playerCanRoll = true; // allow player to roll next round
+        }
+        else
+        {
+            Debug.Log("🎲 Bot's turn: rolling both dice automatically...");
+            playerCanRoll = false;
+            StartCoroutine(RollRound(false));
+        }
+    }
 }
+

@@ -1185,8 +1185,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerDice: {fileID: 962331280}
   botDice: {fileID: 442437573}
-  resultPanel: {fileID: 1406177043}
-  resultText: {fileID: 676585710}
+  FirstRulePannel: {fileID: 1406177043}
+  FirstRuleText: {fileID: 676585710}
 --- !u!1 &2065903524
 GameObject:
   m_ObjectHideFlags: 0
