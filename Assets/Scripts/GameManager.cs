@@ -177,6 +177,7 @@ public class GameManager : MonoBehaviour
             // Enter goal phase
             strikerGoal = sum;
             goalPhaseActive = true;
+            manualRollCount = 0; // <-- reset manual roll count for new phase
             SecondText.text += $"\n\n🎯 Goal is set to {strikerGoal}!";
             Debug.Log($"Goal phase started. Striker needs {strikerGoal}, opponent needs 7.");
 
@@ -193,9 +194,6 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator PlayerGoalPhaseRoll(Dice clickedDice)
     {
-        if (manualRollCount >= 2)
-            yield break;
-
         yield return StartCoroutine(clickedDice.Roll());
         int result = clickedDice.CurrentVisibleFace;
 
@@ -206,7 +204,7 @@ public class GameManager : MonoBehaviour
         {
             int sum = playerManualResults[0] + playerManualResults[1];
             SecondText.text = $"🎯 You rolled {sum}";
-            manualRollCount = 0;
+            manualRollCount = 0; // <-- reset for next double-roll
 
             if (sum == strikerGoal)
             {
