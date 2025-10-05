@@ -1,11 +1,15 @@
 ﻿using System.Collections;
 using UnityEngine;
 using DG.Tweening;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
     public Dice playerDice;
     public Dice botDice;
+
+    public GameObject resultPanel;   // Assign the panel in Inspector
+    public TMP_Text resultText;      // Assign the TMP_Text inside the panel
 
     private int playerRollValue;
     private int botRollValue;
@@ -14,10 +18,10 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        resultPanel.SetActive(false); // panel initially inactive
         Debug.Log("🎲 Click the player dice to roll!");
     }
 
-    // Call this when player clicks dice
     public void PlayerRoll()
     {
         if (!playerCanRoll)
@@ -47,35 +51,44 @@ public class GameManager : MonoBehaviour
         botRollValue = botDice.CurrentVisibleFace;
         Debug.Log($"🎲 Bot rolled {botRollValue}");
 
-        // Move dice to center side by side
+        // Move dice to center
         yield return StartCoroutine(MoveDiceToCenter());
 
-        // Compare and log winner
-        if (playerRollValue > botRollValue)
-            Debug.Log("🎯 Player wins!");
-        else if (botRollValue > playerRollValue)
-            Debug.Log("🤖 Bot wins!");
-        else
-            Debug.Log("⚖️ It's a tie!");
-
-        // Allow next round
-        playerCanRoll = true;
-        Debug.Log("🎲 Click dice to roll again!");
+        // Activate the result panel
+        ShowWinnerPanel();
     }
 
     private IEnumerator MoveDiceToCenter()
     {
-        //Delay before moving
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.5f); // small delay after roll
 
+        Vector3 centerLeft = new Vector3(-1f, 0f, 0f);  // player dice
+        Vector3 centerRight = new Vector3(1f, 0f, 0f);  // bot dice
 
-        Vector3 centerLeft = new Vector3(-1f, 0f, 0f);  // player dice position
-        Vector3 centerRight = new Vector3(1f, 0f, 0f);  // bot dice position
-
-        // Animate movement over 1 seconds
+        // Smooth animation
         playerDice.transform.DOMove(centerLeft, 1f);
         botDice.transform.DOMove(centerRight, 1f);
 
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(1f); // wait until movement finishes
+    }
+
+    private void ShowWinnerPanel()
+    {
+        resultPanel.SetActive(true); // panel appears
+
+        if (playerRollValue > botRollValue)
+            resultText.text = "Player Wins!";
+        else if (botRollValue > playerRollValue)
+            resultText.text = "Bot Wins!";
+        else
+            resultText.text = "It's a Tie!";
+    }
+
+    // Call this from a "Next Round" button
+    public void HideResultPanel()
+    {
+        resultPanel.SetActive(false);
+        playerCanRoll = true; // allow next round
+        Debug.Log("🎲 Click dice to roll for the next round!");
     }
 }
