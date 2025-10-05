@@ -74,21 +74,25 @@ public class GameManager : MonoBehaviour
 
     private void ShowWinnerPanel()
     {
-        resultPanel.SetActive(true); // panel appears
+        resultPanel.SetActive(true); // show panel
 
         if (playerRollValue > botRollValue)
-            resultText.text = "Player Wins!";
+            resultText.text = "Player Wins! Player is now the Striker";
         else if (botRollValue > playerRollValue)
-            resultText.text = "Bot Wins!";
+            resultText.text = "Bot Wins! Bot is now the Striker";
         else
             resultText.text = "It's a Tie!";
+
+        // Automatically hide panel after 3 seconds
+        StartCoroutine(HidePanelAfterDelay(3f));
     }
 
-    // Call this from a "Next Round" button
-    public void HideResultPanel()
+    private IEnumerator HidePanelAfterDelay(float delay)
     {
-        resultPanel.SetActive(false);
-        playerCanRoll = true; // allow next round
+        yield return new WaitForSeconds(delay);
+        resultPanel.SetActive(false); // hide panel
+        playerCanRoll = true;         // allow next round
         Debug.Log("🎲 Click dice to roll for the next round!");
     }
+
 }
