@@ -11,10 +11,19 @@ public class Dice : MonoBehaviour
     [SerializeField] private int currentVisibleFace = 1;
     public int CurrentVisibleFace => currentVisibleFace;
 
+    [Header("Audio")]
+    public AudioSource audioSource;     // drag your AudioSource here
+    public AudioClip rollSound;         // drag your dice roll sound here
+
     private void Start()
     {
         rend = GetComponent<SpriteRenderer>();
         diceSides = Resources.LoadAll<Sprite>("DiceSides/");
+
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
     }
 
     public IEnumerator Roll()
@@ -24,6 +33,10 @@ public class Dice : MonoBehaviour
             Debug.LogError("No dice sprites loaded in Resources/DiceSides/");
             yield break;
         }
+
+        // Play dice roll sound
+        if (rollSound != null)
+            audioSource.PlayOneShot(rollSound);
 
         int randomDiceSide = 0;
         for (int i = 0; i <= 20; i++)
@@ -43,4 +56,3 @@ public class Dice : MonoBehaviour
         gameManager.OnDiceClicked(this);
     }
 }
-
