@@ -15,21 +15,13 @@ public class Dice : MonoBehaviour
     {
         rend = GetComponent<SpriteRenderer>();
         diceSides = Resources.LoadAll<Sprite>("DiceSides/");
-        Debug.Log($"Loaded diceSides: {diceSides?.Length ?? 0}");
     }
 
-    // Roll coroutine that GameManager can wait for
     public IEnumerator Roll()
     {
         if (diceSides == null || diceSides.Length == 0)
         {
-            Debug.LogError("No dice sprites loaded. Put sprites into Assets/Resources/DiceSides/");
-            yield break;
-        }
-
-        if (rend == null)
-        {
-            Debug.LogError("No SpriteRenderer found on " + gameObject.name);
+            Debug.LogError("No dice sprites loaded in Resources/DiceSides/");
             yield break;
         }
 
@@ -48,9 +40,7 @@ public class Dice : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (gameManager != null)
-        {
-            gameManager.OnDiceClicked(this);
-        }
+        gameManager.OnDiceClicked(this);
     }
 }
+
