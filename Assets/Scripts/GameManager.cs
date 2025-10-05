@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using UnityEngine;
+using DG.Tweening;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,16 +10,14 @@ public class GameManager : MonoBehaviour
     private int playerRollValue;
     private int botRollValue;
 
-    // Flag to control when player can roll
     private bool playerCanRoll = true;
 
-    // Called at start to show instructions
     private void Start()
     {
-        Debug.Log("🎲 Player, click the roll button to shoot the dice!");
+        Debug.Log("🎲 Click the player dice to roll!");
     }
 
-    // Call this from a UI Button or input to roll player dice
+    // Call this when player clicks dice
     public void PlayerRoll()
     {
         if (!playerCanRoll)
@@ -33,42 +32,50 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator PlayerRollRoutine()
     {
-        Debug.Log("🧍 Player is rolling...");
+        // Player rolls
         yield return StartCoroutine(playerDice.Roll());
-
-        // Save player dice value
         playerRollValue = playerDice.CurrentVisibleFace;
-
         Debug.Log($"🎲 Player rolled {playerRollValue}");
 
-        // Now let the bot roll
+        // Bot rolls
         yield return StartCoroutine(BotRollRoutine());
     }
 
     private IEnumerator BotRollRoutine()
     {
-        Debug.Log("🤖 Bot is rolling...");
         yield return StartCoroutine(botDice.Roll());
-
-        // Save bot dice value
         botRollValue = botDice.CurrentVisibleFace;
         Debug.Log($"🎲 Bot rolled {botRollValue}");
 
-        // Compare both rolls
-        CompareRolls();
-    }
+        // Move dice to center side by side
+        yield return StartCoroutine(MoveDiceToCenter());
 
-    private void CompareRolls()
-    {
+        // Compare and log winner
         if (playerRollValue > botRollValue)
-            Debug.Log("🎯 Player wins! Player is now the Shooter\"");
+            Debug.Log("🎯 Player wins!");
         else if (botRollValue > playerRollValue)
-            Debug.Log("🤖 Bot wins!, Bot is now the Shooter");
+            Debug.Log("🤖 Bot wins!");
         else
             Debug.Log("⚖️ It's a tie!");
 
-        
+        // Allow next round
         playerCanRoll = true;
+        Debug.Log("🎲 Click dice to roll again!");
+    }
 
+    private IEnumerator MoveDiceToCenter()
+    {
+        //Delay before moving
+        yield return new WaitForSeconds(1f);
+
+
+        Vector3 centerLeft = new Vector3(-1f, 0f, 0f);  // player dice position
+        Vector3 centerRight = new Vector3(1f, 0f, 0f);  // bot dice position
+
+        // Animate movement over 1 seconds
+        playerDice.transform.DOMove(centerLeft, 1f);
+        botDice.transform.DOMove(centerRight, 1f);
+
+        yield return new WaitForSeconds(0.5f);
     }
 }
