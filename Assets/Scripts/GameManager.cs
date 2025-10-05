@@ -5,118 +5,146 @@ using TMPro;
 
 public class GameManager : MonoBehaviour
 {
+    [Header("Dice References")]
     public Dice playerDice;
     public Dice botDice;
 
-    public GameObject FirstRulePannel;   // Assign the panel in Inspector
-    public TMP_Text FirstRuleText;       // Assign the TMP_Text inside the panel
+    [Header("Panels & Texts")]
+    public GameObject FirstRulePanel;
+    public TMP_Text FirstRuleText;
+    public GameObject SecondRulePanel;
+    public TMP_Text SecondRuleText;
 
     private int playerRollValue;
     private int botRollValue;
 
     private bool playerCanRoll = true;
-    private bool playerIsStriker = true; // keeps track who won previous round
+    private bool gameEnded = false;
+
+    private bool playerIsWinner = false;
+    private int manualRollCount = 0; // counts player manual rolls in winner phase
+    private int[] playerManualResults = new int[2]; // stores dice results
 
     private void Start()
     {
-        FirstRulePannel.SetActive(false); // panel initially inactive
-        Debug.Log("🎲 Click the player dice to roll!");
+        FirstRulePanel.SetActive(true);
+        SecondRulePanel.SetActive(false);
+        FirstRuleText.text = "Click your dice to roll!";
+        Debug.Log("🎲 Game start — Player clicks dice to roll.");
     }
 
     public void PlayerRoll()
     {
-        if (!playerCanRoll)
-        {
-            Debug.Log("❌ Wait for your turn!");
-            return;
-        }
+        if (gameEnded) return;
 
-        playerCanRoll = false;
-        StartCoroutine(RollRound(playerIsStriker));
+        // Case 1: First round normal roll
+        if (playerCanRoll && !playerIsWinner)
+        {
+            playerCanRoll = false;
+            StartCoroutine(FirstRound());
+        }
+        // Case 2: Player won, rolling both dice manually
+        else if (playerIsWinner)
+        {
+            StartCoroutine(PlayerManualDoubleRoll());
+        }
     }
 
-    private IEnumerator RollRound(bool playerRollsBoth)
+    private IEnumerator FirstRound()
     {
-        if (playerRollsBoth)
+        FirstRulePanel.SetActive(false);
+
+        // Player rolls their dice
+        yield return StartCoroutine(playerDice.Roll());
+        playerRollValue = playerDice.CurrentVisibleFace;
+
+        // Bot rolls its own dice
+        yield return StartCoroutine(botDice.Roll());
+        botRollValue = botDice.CurrentVisibleFace;
+
+        Debug.Log($"🎲 Player rolled {playerRollValue}, Bot rolled {botRollValue}");
+        yield return StartCoroutine(MoveDiceToCenter());
+
+        // Decide who wins
+        if (playerRollValue > botRollValue)
         {
-            // Player rolls both dice
-            yield return StartCoroutine(playerDice.Roll());
-            playerRollValue = playerDice.CurrentVisibleFace;
-            yield return StartCoroutine(botDice.Roll());
-            botRollValue = botDice.CurrentVisibleFace;
+            Debug.Log("✅ Player wins the round!");
+            playerIsWinner = true;
+            manualRollCount = 0;
+            FirstRulePanel.SetActive(true);
+            FirstRuleText.text = "You won! Roll both dice one by one.";
+            playerCanRoll = true;
+        }
+        else if (botRollValue > playerRollValue)
+        {
+            Debug.Log("🤖 Bot wins the round!");
+            StartCoroutine(BotRollsBothDice());
         }
         else
         {
-            // Bot rolls both dice automatically
-            yield return StartCoroutine(botDice.Roll());
-            botRollValue = botDice.CurrentVisibleFace;
-            yield return StartCoroutine(playerDice.Roll());
-            playerRollValue = playerDice.CurrentVisibleFace;
+            Debug.Log("⚖️ It's a tie! Roll again.");
+            FirstRulePanel.SetActive(true);
+            FirstRuleText.text = "It's a Tie! Click your dice to roll again.";
+            playerCanRoll = true;
         }
+    }
 
-        Debug.Log($"🎲 Player: {playerRollValue}, Bot: {botRollValue}");
+    private IEnumerator PlayerManualDoubleRoll()
+    {
+        // Player can roll either dice manually
+        Dice clickedDice = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject?.GetComponent<Dice>();
+        if (clickedDice == null) yield break;
 
-        // Move dice to center
-        yield return StartCoroutine(MoveDiceToCenter());
+        yield return StartCoroutine(clickedDice.Roll());
+        int result = clickedDice.CurrentVisibleFace;
 
-        // Show result
-        ShowWinnerPanel();
+        playerManualResults[manualRollCount] = result;
+        manualRollCount++;
+
+        Debug.Log($"🎯 Manual roll {manualRollCount}: {result}");
+
+        // After both dice are rolled manually
+        if (manualRollCount >= 2)
+        {
+            int sum = playerManualResults[0] + playerManualResults[1];
+            ShowSumPanel($"You rolled both dice!\nSum: {sum}");
+            Debug.Log($"🎯 Player's total sum: {sum}");
+            gameEnded = true;
+        }
+    }
+
+    private IEnumerator BotRollsBothDice()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        yield return StartCoroutine(botDice.Roll());
+        int dice1 = botDice.CurrentVisibleFace;
+        yield return StartCoroutine(playerDice.Roll());
+        int dice2 = playerDice.CurrentVisibleFace;
+
+        int sum = dice1 + dice2;
+        ShowSumPanel($"Bot rolled both dice!\nSum: {sum}");
+        Debug.Log($"🎯 Bot's total sum: {sum}");
+        gameEnded = true;
     }
 
     private IEnumerator MoveDiceToCenter()
     {
-        yield return new WaitForSeconds(0.5f); // small delay after roll
+        yield return new WaitForSeconds(0.3f);
 
-        Vector3 centerLeft = new Vector3(-1f, 0f, 0f);  // player dice
-        Vector3 centerRight = new Vector3(1f, 0f, 0f);  // bot dice
+        Vector3 playerTarget = new Vector3(-1f, 0f, 0f);
+        Vector3 botTarget = new Vector3(1f, 0f, 0f);
 
-        // Smooth animation
-        playerDice.transform.DOMove(centerLeft, 1f);
-        botDice.transform.DOMove(centerRight, 1f);
+        playerDice.transform.DOMove(playerTarget, 1f);
+        botDice.transform.DOMove(botTarget, 1f);
 
-        yield return new WaitForSeconds(1f); // wait until movement finishes
+        yield return new WaitForSeconds(1f);
     }
 
-    private void ShowWinnerPanel()
+    private void ShowSumPanel(string message)
     {
-        FirstRulePannel.SetActive(true); // show panel
-
-        if (playerRollValue > botRollValue)
-        {
-            FirstRuleText.text = "Player Wins! Player is now the Striker";
-            playerIsStriker = true;
-        }
-        else if (botRollValue > playerRollValue)
-        {
-            FirstRuleText.text = "Bot Wins! Bot is now the Striker";
-            playerIsStriker = false;
-        }
-        else
-        {
-            FirstRuleText.text = "It's a Tie!";
-        }
-
-        // Automatically hide panel after 3 seconds
-        StartCoroutine(HidePanelAfterDelay(3f));
-    }
-
-    private IEnumerator HidePanelAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        FirstRulePannel.SetActive(false); // hide panel
-
-        // Decide next turn
-        if (playerIsStriker)
-        {
-            Debug.Log("🎲 Player's turn: click dice to roll both!");
-            playerCanRoll = true; // allow player to roll next round
-        }
-        else
-        {
-            Debug.Log("🎲 Bot's turn: rolling both dice automatically...");
-            playerCanRoll = false;
-            StartCoroutine(RollRound(false));
-        }
+        FirstRulePanel.SetActive(false);
+        SecondRulePanel.SetActive(true);
+        SecondRuleText.text = message;
     }
 }
-
