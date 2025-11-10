@@ -15,6 +15,9 @@ public class GameManager : MonoBehaviour
     public GameObject SecondPanel;
     public TMP_Text SecondText;
 
+    [Header("Roll Button")]
+    public GameObject RollButton; // assign your UI button here
+
     private int playerRollValue;
     private int botRollValue;
 
@@ -23,55 +26,49 @@ public class GameManager : MonoBehaviour
     private bool playerIsWinner = false;
     private bool gameEnded = false;
 
-    private int manualRollCount = 0;
-    private int[] playerManualResults = new int[2];
-
-    private int strikerGoal = 0; // goal number (point)
-    private bool goalPhaseActive = false; // true if striker is trying to match goal
+    private int strikerGoal = 0;
+    private bool goalPhaseActive = false;
 
     private void Start()
     {
         FirstRulePannel.SetActive(true);
         SecondPanel.SetActive(false);
-        FirstRuleText.text = "Click your dice to start!";
+        RollButton.SetActive(true);
+
+        FirstRuleText.text = "Click ROLL to start!";
         Debug.Log("🎲 Game started! Player rolls first.");
     }
 
-    public void OnDiceClicked(Dice clickedDice)
+    // 🔘 Called when the roll button is pressed
+    public void OnRollButtonPressed()
     {
         if (gameEnded) return;
 
-        // --- FIRST ROUND: player rolls their dice ---
+        // First round
         if (playerCanRoll && !playerIsWinner && !goalPhaseActive)
         {
-            if (clickedDice == playerDice)
-            {
-                playerCanRoll = false;
-                StartCoroutine(FirstRound());
-            }
-            else
-            {
-                Debug.Log("❌ You can only roll your own dice this round!");
-            }
+            playerCanRoll = false;
+            StartCoroutine(FirstRound());
         }
-        // --- PLAYER WON FIRST ROUND: manual double roll ---
-        else if (playerIsWinner && !goalPhaseActive)
+        // Player is striker (manual phase)
+        else if (playerIsWinner && !goalPhaseActive && playerIsStriker)
         {
-            StartCoroutine(PlayerManualDoubleRoll(clickedDice));
+            StartCoroutine(PlayerDoubleRoll());
         }
-        // --- GOAL PHASE: striker keeps rolling until win/lose condition met ---
+        // Goal phase
         else if (goalPhaseActive && playerIsStriker)
         {
-            StartCoroutine(PlayerGoalPhaseRoll(clickedDice));
+            StartCoroutine(PlayerGoalPhaseRoll());
         }
     }
 
     private IEnumerator FirstRound()
     {
-        yield return StartCoroutine(playerDice.Roll());
+        // Roll both dice (player vs bot)
+        yield return StartCoroutine(playerDice.Roll(1.5f));
         playerRollValue = playerDice.CurrentVisibleFace;
 
-        yield return StartCoroutine(botDice.Roll());
+        yield return StartCoroutine(botDice.Roll(1.2f));
         botRollValue = botDice.CurrentVisibleFace;
 
         Debug.Log($"🎲 Player: {playerRollValue}, Bot: {botRollValue}");
@@ -86,22 +83,20 @@ public class GameManager : MonoBehaviour
 
         if (playerRollValue > botRollValue)
         {
-            FirstRuleText.text = "🎉 Player wins the round and becomes the STRIKER!\nClick both dice one by one!";
+            FirstRuleText.text = "🎉 Player wins the round and becomes STRIKER!\nPress ROLL to roll both dice!";
             playerIsStriker = true;
             playerIsWinner = true;
-            manualRollCount = 0;
         }
         else if (botRollValue > playerRollValue)
         {
-            FirstRuleText.text = "🤖 Bot wins the round and becomes the STRIKER!";
+            FirstRuleText.text = "🤖 Bot wins the round and becomes STRIKER!";
             playerIsStriker = false;
             playerIsWinner = false;
-            manualRollCount = 0;
             StartCoroutine(BotDoubleRoll());
         }
         else
         {
-            FirstRuleText.text = "😐 It's a tie! Roll again!";
+            FirstRuleText.text = "😐 It's a tie! Press ROLL again!";
             playerCanRoll = true;
         }
     }
@@ -119,37 +114,34 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(1f);
     }
 
-    private IEnumerator PlayerManualDoubleRoll(Dice clickedDice)
+    private IEnumerator PlayerDoubleRoll()
     {
-        if (manualRollCount >= 2)
-            yield break;
+        // Player rolls both dice simultaneously
+        yield return StartCoroutine(RollBothDice(playerDice, botDice, 1.6f));
 
-        yield return StartCoroutine(clickedDice.Roll());
-        int result = clickedDice.CurrentVisibleFace;
+        int sum = playerDice.CurrentVisibleFace + botDice.CurrentVisibleFace;
+        ShowSumPanel($"🎯 You rolled both dice!\nSum = {sum}");
+        yield return new WaitForSeconds(0.5f);
 
-        playerManualResults[manualRollCount] = result;
-        manualRollCount++;
+        CheckStrikerResult(sum, true);
+    }
 
-        if (manualRollCount >= 2)
-        {
-            int sum = playerManualResults[0] + playerManualResults[1];
-            ShowSumPanel($"🎯 You rolled both dice!\nSum = {sum}");
-            yield return new WaitForSeconds(0.5f);
-            CheckStrikerResult(sum, true);
-        }
+    private IEnumerator RollBothDice(Dice dice1, Dice dice2, float duration = 1.5f)
+    {
+        Coroutine c1 = StartCoroutine(dice1.Roll(duration));
+        Coroutine c2 = StartCoroutine(dice2.Roll(duration));
+        yield return c1;
+        yield return c2;
     }
 
     private IEnumerator BotDoubleRoll()
     {
-        yield return StartCoroutine(botDice.Roll());
-        int roll1 = botDice.CurrentVisibleFace;
+        yield return StartCoroutine(RollBothDice(botDice, playerDice, 1.2f));
+        int sum = botDice.CurrentVisibleFace + playerDice.CurrentVisibleFace;
 
-        yield return StartCoroutine(playerDice.Roll());
-        int roll2 = playerDice.CurrentVisibleFace;
-
-        int sum = roll1 + roll2;
         ShowSumPanel($"🤖 Bot rolled both dice!\nSum = {sum}");
         yield return new WaitForSeconds(0.5f);
+
         CheckStrikerResult(sum, false);
     }
 
@@ -159,8 +151,6 @@ public class GameManager : MonoBehaviour
         SecondPanel.SetActive(true);
         SecondText.text = message;
     }
-
-    // ====================== CRAPS RULE LOGIC ======================
 
     private void CheckStrikerResult(int sum, bool strikerIsPlayer)
     {
@@ -174,16 +164,14 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            // Enter goal phase
             strikerGoal = sum;
             goalPhaseActive = true;
-            manualRollCount = 0; // <-- reset manual roll count for new phase
             SecondText.text += $"\n\n🎯 Goal is set to {strikerGoal}!";
             Debug.Log($"Goal phase started. Striker needs {strikerGoal}, opponent needs 7.");
 
             if (strikerIsPlayer)
             {
-                SecondText.text += "\nClick both dice to roll until you hit the goal or 7!";
+                SecondText.text += "\nPress ROLL to keep rolling!";
             }
             else
             {
@@ -192,32 +180,24 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private IEnumerator PlayerGoalPhaseRoll(Dice clickedDice)
+    private IEnumerator PlayerGoalPhaseRoll()
     {
-        yield return StartCoroutine(clickedDice.Roll());
-        int result = clickedDice.CurrentVisibleFace;
+        yield return StartCoroutine(RollBothDice(playerDice, botDice, 1.5f));
+        int sum = playerDice.CurrentVisibleFace + botDice.CurrentVisibleFace;
 
-        playerManualResults[manualRollCount] = result;
-        manualRollCount++;
+        SecondText.text = $"🎯 You rolled {sum}";
 
-        if (manualRollCount >= 2)
+        if (sum == strikerGoal)
         {
-            int sum = playerManualResults[0] + playerManualResults[1];
-            SecondText.text = $"🎯 You rolled {sum}";
-            manualRollCount = 0; // <-- reset for next double-roll
-
-            if (sum == strikerGoal)
-            {
-                EndGame(true, true);
-            }
-            else if (sum == 7)
-            {
-                EndGame(true, false);
-            }
-            else
-            {
-                SecondText.text += $"\nKeep rolling for {strikerGoal}!";
-            }
+            EndGame(true, true);
+        }
+        else if (sum == 7)
+        {
+            EndGame(true, false);
+        }
+        else
+        {
+            SecondText.text += $"\nKeep rolling for {strikerGoal}!";
         }
     }
 
@@ -227,13 +207,9 @@ public class GameManager : MonoBehaviour
 
         while (!gameEnded)
         {
-            yield return StartCoroutine(botDice.Roll());
-            int roll1 = botDice.CurrentVisibleFace;
+            yield return StartCoroutine(RollBothDice(botDice, playerDice, 1.2f));
+            int sum = botDice.CurrentVisibleFace + playerDice.CurrentVisibleFace;
 
-            yield return StartCoroutine(playerDice.Roll());
-            int roll2 = playerDice.CurrentVisibleFace;
-
-            int sum = roll1 + roll2;
             SecondText.text = $"🤖 Bot rolled {sum}";
 
             if (sum == strikerGoal)
@@ -268,6 +244,7 @@ public class GameManager : MonoBehaviour
 
         SecondText.text += $"\n\n{resultMsg}";
         Debug.Log(resultMsg);
+        RollButton.SetActive(false);
     }
 }
 

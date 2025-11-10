@@ -12,8 +12,8 @@ public class Dice : MonoBehaviour
     public int CurrentVisibleFace => currentVisibleFace;
 
     [Header("Audio")]
-    public AudioSource audioSource;     // drag your AudioSource here
-    public AudioClip rollSound;         // drag your dice roll sound here
+    public AudioSource audioSource;
+    public AudioClip rollSound;
 
     private void Start()
     {
@@ -26,7 +26,8 @@ public class Dice : MonoBehaviour
         }
     }
 
-    public IEnumerator Roll()
+    // Adjustable roll duration for realism
+    public IEnumerator Roll(float rollDuration = 1.5f)
     {
         if (diceSides == null || diceSides.Length == 0)
         {
@@ -34,25 +35,22 @@ public class Dice : MonoBehaviour
             yield break;
         }
 
-        // Play dice roll sound
         if (rollSound != null)
             audioSource.PlayOneShot(rollSound);
 
+        float elapsed = 0f;
         int randomDiceSide = 0;
-        for (int i = 0; i <= 20; i++)
+
+        while (elapsed < rollDuration)
         {
             randomDiceSide = Random.Range(0, 6);
             rend.sprite = diceSides[randomDiceSide];
             currentVisibleFace = randomDiceSide + 1;
-            yield return new WaitForSeconds(0.05f);
+            yield return new WaitForSeconds(0.1f);
+            elapsed += 0.1f;
         }
 
         currentVisibleFace = randomDiceSide + 1;
         Debug.Log($"{gameObject.name} rolled {currentVisibleFace}");
-    }
-
-    private void OnMouseDown()
-    {
-        gameManager.OnDiceClicked(this);
     }
 }
